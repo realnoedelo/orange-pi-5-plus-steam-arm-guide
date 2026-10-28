@@ -271,6 +271,39 @@ The desktop process should no longer contain `-gamepadui`. The ARM client may st
 
 The successful desktop result is a normal Steam window showing Store/Library/Friends, account status, and the user's library.
 
+### Recovery after logging out of KDE or reconnecting VNC
+
+A graphical logout can leave one or more `steam-arm --desktop` shell wrappers behind while the actual Steam client has already exited. Starting the desktop icon repeatedly then leaves several wrappers sleeping and no Steam window. Clean the stale launchers before starting one new instance:
+
+```bash
+pkill -TERM -u "$USER" -f "/usr/local/bin/steam-arm" || true
+sleep 3
+pkill -KILL -u "$USER" -f "/usr/local/bin/steam-arm" || true
+pkill -TERM -u "$USER" -f "steamwebhelper|steam -deckard|steamrtarm64/steam" || true
+sleep 3
+
+DISPLAY=:1 \
+XAUTHORITY="$HOME/.Xauthority" \
+XDG_RUNTIME_DIR="/run/user/$(id -u)" \
+DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus" \
+HOME="$HOME" \
+steam-arm --desktop -dev -windowed -cef-disable-gpu -cef-disable-gpu-compositing
+```
+
+Verify that there is exactly one main client:
+
+```bash
+pgrep -a -u "$USER" -f "steam -deckard|steamwebhelper"
+```
+
+The login log should end with:
+
+```text
+SetLoginState: Success - OK
+```
+
+Do not start several desktop icons at once. The launcher deliberately waits while another start is in progress.
+
 ## 7. Run Steam remotely without a monitor
 
 The board can run a KDE X11 session and expose it through TigerVNC/noVNC.
