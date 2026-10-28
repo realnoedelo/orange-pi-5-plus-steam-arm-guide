@@ -27,12 +27,12 @@ done
 
 [ "$(id -u)" -eq 0 ] || { echo "run as root: sudo $0" >&2; exit 1; }
 STAMP="$(date +%Y%m%d-%H%M%S)"
-OUT="${OUT:-/tmp/opi-steam-debug-$STAMP}"
+OUT="${OUT:-/home/greenpow/opi-steam-debug-$STAMP}"
 mkdir -p "$OUT"
 
 # Keep all files private by default; logs can contain local paths and process arguments.
 umask 077
-exec > >(tee "$OUT/live.tsv") 2>&1
+exec > >(stdbuf -oL tee "$OUT/live.tsv") 2>&1
 
 cleanup() {
   trap - INT TERM EXIT
@@ -84,5 +84,6 @@ while :; do
   echo 'processes:'
   ps -eo pid,ppid,stat,pcpu,pmem,etime,args --sort=-pcpu | egrep -i 'CloverPit|dota|steam|proton|wine|fex|pressure-vessel|gamescope|Xorg|kwin' | head -35 || true
   if [ "$DURATION" -gt 0 ] 2>/dev/null && [ "$ELAPSED" -ge "$DURATION" ]; then break; fi
+  sync -d "$OUT/live.tsv" "$OUT/kernel.log" "$OUT/steam.log" "$OUT/compat.log" 2>/dev/null || true
   sleep 1
 done
